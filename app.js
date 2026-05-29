@@ -251,6 +251,11 @@ function setupAuthListeners() {
     const emailInput = document.getElementById('email-input');
     const passwordInput = document.getElementById('password-input');
     const authError = document.getElementById('auth-error');
+    const forceSyncBtn = document.getElementById('force-sync-btn');
+
+    forceSyncBtn.addEventListener('click', () => {
+        uploadLocalDataToCloud();
+    });
 
     loginBtn.addEventListener('click', () => authModal.classList.add('active'));
     closeModalBtn.addEventListener('click', () => {
@@ -286,18 +291,65 @@ function setupAuthListeners() {
             document.getElementById('user-info').textContent = user.email;
             loginBtn.style.display = 'none';
             logoutBtn.style.display = 'inline-block';
+            forceSyncBtn.style.display = 'inline-block';
+            
+            uploadLocalDataToCloud();
             syncDataFromFirestore();
         } else {
             currentUser = null;
             document.getElementById('user-info').textContent = 'Not logged in';
             loginBtn.style.display = 'inline-block';
             logoutBtn.style.display = 'none';
+            forceSyncBtn.style.display = 'none';
             if (unsubscribeSnapshot) {
                 unsubscribeSnapshot();
                 unsubscribeSnapshot = null;
             }
             applyFilter(currentFilter);
         }
+    });
+}
+
+function uploadLocalDataToCloud() {
+    if (!currentUser) return;
+    const syncIndicator = document.getElementById('sync-indicator');
+    if(syncIndicator) syncIndicator.style.display = 'block';
+    
+    const localData = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('conf_')) {
+            localData.push({
+                hashStr: key.replace('conf_', ''),
+                level: localStorage.getItem(key)
+            });
+        }
+    }
+    
+    if (localData.length === 0) {
+        if(syncIndicator) syncIndicator.style.display = 'none';
+        return;
+    }
+
+    const batch = db.batch();
+    const userRef = db.collection('users').doc(currentUser.uid);
+    
+    // Note: Firestore batch has a limit of 500 writes. If there are more, we would need to split them.
+    // For flashcards, it's typically under 500.
+    localData.forEach(data => {
+        const docRef = userRef.collection('confidence').doc(data.hashStr);
+        batch.set(docRef, {
+            level: data.level,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    });
+
+    batch.commit().then(() => {
+        console.log("Successfully uploaded local data to cloud.");
+        setTimeout(() => { if(syncIndicator) syncIndicator.style.display = 'none'; }, 1000);
+    }).catch(err => {
+        console.error("Error uploading local data:", err);
+        if(syncIndicator) syncIndicator.style.display = 'none';
     });
 }
 

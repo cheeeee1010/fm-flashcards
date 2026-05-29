@@ -24,6 +24,7 @@
             <p id="user-info" class="user-info-text">Not logged in</p>
             <button class="btn btn-secondary btn-small" id="login-btn">Login / Sign Up</button>
             <button class="btn btn-secondary btn-small" id="logout-btn" style="display: none;">Log Out</button>
+            <button class="btn btn-primary btn-small" id="force-sync-btn" style="display: none; margin-top: 10px; width: 100%;">Sync Local to Cloud</button>
         </div>
         <hr class="sidebar-divider">
 
@@ -42,6 +43,7 @@
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <h1>FM Flashcards</h1>
+            <div id="sync-indicator" class="sync-indicator" style="display: none; position: absolute; right: 15px; top: 20px; font-size: 0.8rem; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-weight: 600;">Syncing...</div>
             <div class="progress" id="progress-text">Card 1 / 10</div>
             <div class="progress-bar">
                 <div class="progress-fill" id="progress-fill"></div>
