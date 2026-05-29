@@ -36,6 +36,7 @@ const db = firebase.firestore();
 
 let currentFilter = 'all';
 let currentUser = null;
+let unsubscribeSnapshot = null;
 
 function init() {
     if (typeof flashcards !== 'undefined' && flashcards.length > 0) {
@@ -291,6 +292,10 @@ function setupAuthListeners() {
             document.getElementById('user-info').textContent = 'Not logged in';
             loginBtn.style.display = 'inline-block';
             logoutBtn.style.display = 'none';
+            if (unsubscribeSnapshot) {
+                unsubscribeSnapshot();
+                unsubscribeSnapshot = null;
+            }
             applyFilter(currentFilter);
         }
     });
@@ -298,7 +303,12 @@ function setupAuthListeners() {
 
 function syncDataFromFirestore() {
     if (!currentUser) return;
-    db.collection('users').doc(currentUser.uid).collection('confidence').get().then(snapshot => {
+    
+    if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+    }
+
+    unsubscribeSnapshot = db.collection('users').doc(currentUser.uid).collection('confidence').onSnapshot(snapshot => {
         let hasChanges = false;
         snapshot.forEach(doc => {
             const currentVal = localStorage.getItem('conf_' + doc.id);
@@ -307,10 +317,22 @@ function syncDataFromFirestore() {
                 hasChanges = true;
             }
         });
-        if (hasChanges) {
-            applyFilter(currentFilter);
+        
+        // Update the current card's badge visually without resetting the whole deck
+        if (hasChanges && cards.length > 0 && currentIndex >= 0 && currentIndex < cards.length) {
+            const currentCard = cards[currentIndex];
+            const savedLevel = localStorage.getItem('conf_' + hashCode(currentCard.question));
+            if (savedLevel) {
+                confidenceBadgeEl.textContent = savedLevel.toUpperCase();
+                confidenceBadgeEl.className = 'badge ' + savedLevel;
+            } else {
+                confidenceBadgeEl.className = 'badge';
+                confidenceBadgeEl.textContent = '';
+            }
         }
-    }).catch(err => console.error("Error fetching data:", err));
+    }, err => {
+        console.error("Error fetching real-time data:", err);
+    });
 }
 
 window.addEventListener('DOMContentLoaded', init);
