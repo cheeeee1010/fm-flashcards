@@ -19,6 +19,14 @@
             <h2>Filters</h2>
             <button class="close-btn" id="close-sidebar-btn">&times;</button>
         </div>
+        
+        <div class="user-section" id="user-section">
+            <p id="user-info" class="user-info-text">Not logged in</p>
+            <button class="btn btn-secondary btn-small" id="login-btn">Login / Sign Up</button>
+            <button class="btn btn-secondary btn-small" id="logout-btn" style="display: none;">Log Out</button>
+        </div>
+        <hr class="sidebar-divider">
+
         <ul class="filter-list">
             <li class="filter-item active" data-filter="all">All Cards</li>
             <li class="filter-item" data-filter="unrated">Unrated</li>
@@ -82,6 +90,26 @@
             </button>
         </div>
     </div>
+
+    <div class="modal-overlay" id="auth-modal">
+        <div class="modal">
+            <h2>Account Sync</h2>
+            <p class="modal-desc">Log in or create an account to sync your confidence levels across all your devices.</p>
+            <input type="email" id="email-input" placeholder="Email" class="input-field">
+            <input type="password" id="password-input" placeholder="Password" class="input-field">
+            <p id="auth-error" class="error-text"></p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" id="signin-btn">Login</button>
+                <button class="btn btn-secondary" id="signup-btn">Sign Up</button>
+            </div>
+            <button class="close-modal-btn" id="close-modal-btn">&times;</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
 
     <script src="data.js"></script>
     <script src="app.js"></script>

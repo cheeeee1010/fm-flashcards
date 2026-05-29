@@ -19,7 +19,23 @@ const menuBtn = document.getElementById('menu-btn');
 const closeSidebarBtn = document.getElementById('close-sidebar-btn');
 const filterItems = document.querySelectorAll('.filter-item');
 
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDnNdB2ID8gx7k6bz7FOTVCtuWO8N4-JyI",
+  authDomain: "fm-flashcard.firebaseapp.com",
+  projectId: "fm-flashcard",
+  storageBucket: "fm-flashcard.firebasestorage.app",
+  messagingSenderId: "645660318045",
+  appId: "1:645660318045:web:21cc9142e5380b80a930b4"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
 let currentFilter = 'all';
+let currentUser = null;
 
 function init() {
     if (typeof flashcards !== 'undefined' && flashcards.length > 0) {
@@ -171,7 +187,17 @@ function setupEventListeners() {
             if (cards.length === 0) return;
             const level = e.target.getAttribute('data-level');
             const card = cards[currentIndex];
-            localStorage.setItem('conf_' + hashCode(card.question), level);
+            const hashStr = hashCode(card.question).toString();
+            
+            localStorage.setItem('conf_' + hashStr, level);
+            
+            // Save to Firestore if logged in
+            if (currentUser) {
+                db.collection('users').doc(currentUser.uid).collection('confidence').doc(hashStr).set({
+                    level: level,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }).catch(err => console.error("Error saving to cloud:", err));
+            }
             
             // show feedback then go to next card
             setTimeout(() => {
@@ -209,6 +235,82 @@ function setupEventListeners() {
             }
         });
     });
+
+    // Auth Event Listeners
+    setupAuthListeners();
+}
+
+function setupAuthListeners() {
+    const authModal = document.getElementById('auth-modal');
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const signupBtn = document.getElementById('signup-btn');
+    const signinBtn = document.getElementById('signin-btn');
+    const emailInput = document.getElementById('email-input');
+    const passwordInput = document.getElementById('password-input');
+    const authError = document.getElementById('auth-error');
+
+    loginBtn.addEventListener('click', () => authModal.classList.add('active'));
+    closeModalBtn.addEventListener('click', () => {
+        authModal.classList.remove('active');
+        authError.textContent = '';
+    });
+    logoutBtn.addEventListener('click', () => auth.signOut());
+
+    signupBtn.addEventListener('click', () => {
+        if(!emailInput.value || !passwordInput.value) return;
+        auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value)
+            .then(() => {
+                authModal.classList.remove('active');
+                emailInput.value = ''; passwordInput.value = ''; authError.textContent = '';
+            })
+            .catch(err => { authError.textContent = err.message; });
+    });
+
+    signinBtn.addEventListener('click', () => {
+        if(!emailInput.value || !passwordInput.value) return;
+        auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value)
+            .then(() => {
+                authModal.classList.remove('active');
+                emailInput.value = ''; passwordInput.value = ''; authError.textContent = '';
+            })
+            .catch(err => { authError.textContent = err.message; });
+    });
+
+    // Firebase Auth State Observer
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            currentUser = user;
+            document.getElementById('user-info').textContent = user.email;
+            loginBtn.style.display = 'none';
+            logoutBtn.style.display = 'inline-block';
+            syncDataFromFirestore();
+        } else {
+            currentUser = null;
+            document.getElementById('user-info').textContent = 'Not logged in';
+            loginBtn.style.display = 'inline-block';
+            logoutBtn.style.display = 'none';
+            applyFilter(currentFilter);
+        }
+    });
+}
+
+function syncDataFromFirestore() {
+    if (!currentUser) return;
+    db.collection('users').doc(currentUser.uid).collection('confidence').get().then(snapshot => {
+        let hasChanges = false;
+        snapshot.forEach(doc => {
+            const currentVal = localStorage.getItem('conf_' + doc.id);
+            if(currentVal !== doc.data().level) {
+                localStorage.setItem('conf_' + doc.id, doc.data().level);
+                hasChanges = true;
+            }
+        });
+        if (hasChanges) {
+            applyFilter(currentFilter);
+        }
+    }).catch(err => console.error("Error fetching data:", err));
 }
 
 window.addEventListener('DOMContentLoaded', init);
