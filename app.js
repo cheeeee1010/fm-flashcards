@@ -21,7 +21,7 @@ const filterItems = document.querySelectorAll('.filter-item');
 
 // Firebase Configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDnNdB2ID8gx7k6bz7FOTVCtuWO8N4-JyI",
+  apiKey: "REPLACE_WITH_YOUR_API_KEY",
   authDomain: "fm-flashcard.firebaseapp.com",
   projectId: "fm-flashcard",
   storageBucket: "fm-flashcard.firebasestorage.app",
